@@ -17,7 +17,9 @@
 <button data-page="settings"><b class="ico">⚙</b>Настройки</button></nav><div class="sidefoot">Панель администратора<br><span style="color:#5ce0ad">●</span> Демонстрационный режим</div></aside>
 <main class="main"><div class="top"><div><h1 id="pageTitle">Панель администратора</h1><small id="pageSub">Обзор работы обменника</small></div><div><span class="muted">Администратор</span>　<button class="btn secondary" onclick="toast('Это демонстрационный режим')">⌕</button></div></div><div id="content"></div></main></div><div class="toast" id="toast"></div><div class="modal hidden" id="modal"><div class="modalbox"><div class="row"><h3 id="modalTitle">Добавить</h3><button class="btn secondary" onclick="closeModal()">✕</button></div><div id="modalBody"></div><div class="row" style="margin-top:18px"><button class="btn secondary" onclick="closeModal()">Отмена</button><button class="btn" onclick="saveModal()">Сохранить</button></div></div></div>
 <script>
-const rates={USDT:81.90,USD:81.39,EUR:90.32};
+const SUPABASE_URL = 'https://ckcswfutgpakaaygjkgo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fLAKKyjhcYcubZ3myuyVGg_-ukFc52f';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);const rates={USDT:81.90,USD:81.39,EUR:90.32};
 let page='home',dealTab='Приём',disputeTab='Активные',modalAction=null;
 let deals=JSON.parse(localStorage.getItem('exDeals')||'[]');
 if(!deals.length) deals=[{id:'EX-12456',client:'Александр К.',type:'Приём',amount:'100 000 ₽',currency:'USDT',status:'Ожидает оплаты',date:'06.11.2026 21:42'},{id:'EX-12455',client:'Иван П.',type:'Выплата',amount:'25 000 ₽',currency:'RUB',status:'В обработке',date:'06.11.2026 21:18'},{id:'EX-12454',client:'Мария С.',type:'Приём',amount:'500 USDT',currency:'USDT',status:'Завершена',date:'06.11.2026 20:51'}];
