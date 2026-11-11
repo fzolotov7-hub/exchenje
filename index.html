@@ -5,10 +5,67 @@
 </style></head><body>
 <header><div class="logo">EXCHANGE</div><div class="pill">Демо-аккаунт · Клиент</div></header>
 <main><div class="welcome"><div><div class="tag">ЛИЧНЫЙ КАБИНЕТ</div><h1>Добро пожаловать!</h1><div class="muted">Создавайте заявки и следите за их статусом.</div></div><div class="pill">Профиль: Demo User</div></div>
-<div class="grid"><div class="card"><div class="muted">USD / RUB</div><div class="rate">— ₽</div></div><div class="card"><div class="muted">EUR / RUB</div><div class="rate">— ₽</div></div><div class="card"><div class="muted">USDT / RUB</div><div class="rate">— ₽</div></div><div class="card"><div class="muted">BTC / RUB</div><div class="rate">— ₽</div></div></div>
+<div class="grid">
+<div class="card">
+<div class="muted">USD / RUB</div>
+<div class="rate" id="rate-usd">Загрузка...</div>
+</div>
+
+<div class="card">
+<div class="muted">EUR / RUB</div>
+<div class="rate" id="rate-eur">Загрузка...</div>
+</div>
+
+<div class="card">
+<div class="muted">USDT / RUB</div>
+<div class="rate" id="rate-usdt">Загрузка...</div>
+</div>
+</div>
 <div class="panel"><section class="card"><div class="tag">НОВАЯ ЗАЯВКА</div><h2>Обмен валют</h2><label>Отдаёте</label><select class="field" id="from"><option>RUB — Российский рубль</option><option>TON</option><option>USDT (TON)</option></select><label>Получаете</label><select class="field" id="to"><option>USDT</option><option>TON</option><option>RUB</option></select><label>Сумма</label><input class="field" id="amount" type="number" placeholder="Например, 100000" value="100000"><label>Способ оплаты</label><select class="field" id="pay"><option>Банковская карта — через платёжного провайдера</option><option>Tonkeeper — TON / USDT в выбранной сети</option><option>Telegram Wallet — поддерживаемый актив</option></select><div class="notice">Демонстрация: курсы, платежи и переводы не подключены. Не отправляйте реальные деньги или криптовалюту.</div><p id="summary" class="muted">Предварительный расчёт появится после подключения курсов.</p><button class="btn" onclick="alert('Демо: заявка создана локально. Реальная оплата не выполняется.')">Начать сделку</button></section>
-<aside class="card"><div class="tag">МОИ ОПЕРАЦИИ</div><h2>История сделок</h2><div class="notice">Пока нет операций.</div><h3>Поддержка</h3><div class="muted">Если возник вопрос по заявке, обратитесь в поддержку.</div><button class="btn secondary" onclick="alert('Демо-раздел поддержки')">Открыть поддержку</button></aside></div></main></<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<aside class="card"><div class="tag">МОИ ОПЕРАЦИИ</div><h2>История сделок</h2><div class="notice">Пока нет операций.</div><h3>Поддержка</h3><div class="muted">Если возник вопрос по заявке, обратитесь в поддержку.</div><button class="btn secondary" onclick="alert('Демо-раздел поддержки')">Открыть поддержку</button></aside></div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = 'https://ckcswfutgpakaaygjkgo.supabase.co';
+
+const SUPABASE_KEY = 'sb_publishable_fLAKKyjhcYcubZ3myuyVGg_-ukFc52f';
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function loadRates() {
+    const { data, error } = await db
+        .from('rates')
+        .select('currency, rate');
+
+    if (error) {
+        console.error('Ошибка загрузки курсов:', error);
+        return;
+    }
+
+    const rates = {};
+
+    data.forEach(item => {
+        rates[item.currency.toUpperCase()] = Number(item.rate);
+    });
+
+    ['USD', 'EUR', 'USDT'].forEach(currency => {
+        const element = document.getElementById(
+            'rate-' + currency.toLowerCase()
+        );
+
+        if (element && rates[currency] !== undefined) {
+            element.textContent = rates[currency].toLocaleString(
+                'ru-RU',
+                { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+            ) + ' ₽';
+        }
+    });
+}
+
+loadRates();
+</script>
+
 </body>                                                                                                                                                                                                                                                                                                                                                  </body></html>
 </html>
-</body>
-</html>
+
