@@ -1,3 +1,33 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EXCHANGE — Панель администратора</title>
@@ -9,52 +39,284 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head><body><div class="app"><aside class="side"><div class="brand">EX<span>CHANGE</span></div><nav class="nav" id="nav">
 <button data-page="home" class="active"><b class="ico">⌂</b>Главная</button>
+<button data-page="requests"><b class="ico">▤</b>Заявки</button>
 <button data-page="deals"><b class="ico">⇄</b>Сделки</button>
+<button data-page="users"><b class="ico">♙</b>Пользователи</button>
 <button data-page="disputes"><b class="ico">⚑</b>Споры</button>
+<button data-page="rates"><b class="ico">₮</b>Курсы валют</button>
 <button data-page="stats"><b class="ico">▥</b>Статистика</button>
 <button data-page="requisites"><b class="ico">▣</b>Реквизиты</button>
-<button data-page="employees"><b class="ico">♙</b>Сотрудники</button>
-<button data-page="settings"><b class="ico">⚙</b>Настройки</button></nav><div class="sidefoot">Панель администратора<br><span style="color:#5ce0ad">●</span> Демонстрационный режим</div></aside>
-<main class="main"><div class="top"><div><h1 id="pageTitle">Панель администратора</h1><small id="pageSub">Обзор работы обменника</small></div><div><span class="muted">Администратор</span>　<button class="btn secondary" onclick="toast('Это демонстрационный режим')">⌕</button></div></div><div id="content"></div></main></div><div class="toast" id="toast"></div><div class="modal hidden" id="modal"><div class="modalbox"><div class="row"><h3 id="modalTitle">Добавить</h3><button class="btn secondary" onclick="closeModal()">✕</button></div><div id="modalBody"></div><div class="row" style="margin-top:18px"><button class="btn secondary" onclick="closeModal()">Отмена</button><button class="btn" onclick="saveModal()">Сохранить</button></div></div></div>
+<button data-page="employees"><b class="ico">♧</b>Сотрудники</button>
+<button data-page="notifications"><b class="ico">♢</b>Уведомления</button>
+<button data-page="settings"><b class="ico">⚙</b>Настройки</button>
+</nav><div class="sidefoot">Панель администратора<br><span id="authState" style="color:#f3b94f">●</span> Проверка доступа</div></aside>
+<main class="main"><div class="top"><div><h1 id="pageTitle">Панель администратора</h1><small id="pageSub">Обзор работы обменника</small></div><div><span class="muted" id="adminIdentity">Не авторизован</span>　<button class="btn" id="telegramLogin" onclick="telegramLogin()">Войти через Telegram</button><button class="btn secondary hidden" id="logoutBtn" onclick="logout()">Выйти</button></div></div><div id="content"></div></main></div><div class="toast" id="toast"></div><div class="modal hidden" id="modal"><div class="modalbox"><div class="row"><h3 id="modalTitle">Добавить</h3><button class="btn secondary" onclick="closeModal()">✕</button></div><div id="modalBody"></div><div class="row" style="margin-top:18px"><button class="btn secondary" onclick="closeModal()">Отмена</button><button class="btn" onclick="saveModal()">Сохранить</button></div></div></div>
 <script>
 const SUPABASE_URL = 'https://ckcswfutgpakaaygjkgo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_fLAKKyjhcYcubZ3myuyVGg_-ukFc52f';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);const rates={USDT:81.90,USD:81.39,EUR:90.32};
-let page='home',dealTab='Приём',disputeTab='Активные',modalAction=null;
-let deals=JSON.parse(localStorage.getItem('exDeals')||'[]');
-if(!deals.length) deals=[{id:'EX-12456',client:'Александр К.',type:'Приём',amount:'100 000 ₽',currency:'USDT',status:'Ожидает оплаты',date:'06.11.2026 21:42'},{id:'EX-12455',client:'Иван П.',type:'Выплата',amount:'25 000 ₽',currency:'RUB',status:'В обработке',date:'06.11.2026 21:18'},{id:'EX-12454',client:'Мария С.',type:'Приём',amount:'500 USDT',currency:'USDT',status:'Завершена',date:'06.11.2026 20:51'}];
-let disputes=[{id:'SP-102',client:'Александр К.',reason:'Клиент не получил выплату',status:'Открыт',date:'06.11.2026'},{id:'SP-101',client:'Иван П.',reason:'Неверная сумма перевода',status:'На рассмотрении',date:'05.11.2026'}];
-let requisites=JSON.parse(localStorage.getItem('exReq')||'["Т-Банк · Карта •• 4821","Альфа-Банк · Карта •• 1092","Сбербанк · СБП","Озон Банк · Карта •• 7720"]');
-let employees=['Главный администратор · Полный доступ','Оператор · Приём заявок','Оператор выплат · Выплаты'];
-const titles={home:['Панель администратора','Обзор работы обменника'],deals:['Сделки','Управление приёмами и выплатами'],disputes:['Споры','Обращения и спорные операции'],stats:['Статистика','Отчёты и показатели обменника'],requisites:['Реквизиты','Банковские реквизиты и лимиты'],employees:['Сотрудники','Управление доступом команды'],settings:['Настройки','Параметры платформы']};
-function toast(s){let t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',2400)}
-function go(p){page=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));document.getElementById('pageTitle').textContent=titles[p][0];document.getElementById('pageSub').textContent=titles[p][1];render()}
-document.getElementById('nav').addEventListener('click',e=>{let b=e.target.closest('button[data-page]');if(b)go(b.dataset.page)});
-function table(rows,heads){return `<div class="tablewrap"><table><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows||''}</tbody></table></div>`}
-function status(s){let c=s.includes('Заверш')||s.includes('Закрыт')?'green':s.includes('Ожидает')||s.includes('рассмотр')||s.includes('обработ')?'yellow':'red';return `<span class="pill ${c}">${s}</span>`}
-function render(){let c=document.getElementById('content');if(page==='home')c=home(c);if(page==='deals')c=dealPage(c);if(page==='disputes')c=disputePage(c);if(page==='stats')c=statsPage(c);if(page==='requisites')c=requisitesPage(c);if(page==='employees')c=employeesPage(c);if(page==='settings')c=settingsPage(c)}
-function home(c){c.innerHTML=`<div class="cards"><div class="card"><span class="muted">Баланс USDT</span><div class="metric">12 480 <small>USDT</small></div><span class="pill green">Доступно</span></div><div class="card"><span class="muted">Страховой лимит</span><div class="metric">8 920 <small>USDT</small></div><span class="muted">Текущий лимит</span></div><div class="card"><span class="muted">Оборот за день</span><div class="metric">₽ 745 780</div><span class="pill green">+12,8%</span></div><div class="card"><span class="muted">Открытые споры</span><div class="metric">${disputes.length}</div><span class="pill yellow">Требуют внимания</span></div></div><div class="sectiongrid"><div class="panel"><h3>Последние сделки</h3>${table(deals.slice(0,5).map(d=>`<tr><td>${d.id}</td><td>${d.client}</td><td>${d.type}</td><td>${d.amount}</td><td>${status(d.status)}</td></tr>`).join(''),['Номер','Клиент','Тип','Сумма','Статус'])}<button class="btn secondary" onclick="go('deals')">Все сделки</button></div><div class="panel"><h3>Курсы валют</h3>${Object.entries(rates).map(([k,v])=>`<div class="item row"><b>${k}</b><b>${v.toFixed(2).replace('.',',')} ₽</b></div>`).join('')}<button class="btn secondary" onclick="go('settings')">Изменить курсы</button></div></div>`;return c}
-function dealPage(c){let tabs=['Приём','Выплата','Споры','Все'];let list=deals.filter(d=>dealTab==='Все'||d.type===dealTab||(dealTab==='Споры'&&d.status==='Спор'));c.innerHTML=`<div class="tabs">${tabs.map(t=>`<button class="${dealTab===t?'active':''}" onclick="dealTab='${t}';render()">${t}</button>`).join('')}</div><div class="row"><h3>${dealTab} — ${list.length}</h3><button class="btn" onclick="openAddDeal()">＋ Добавить сделку</button></div><div class="filters"><input id="dealSearch" placeholder="Поиск по номеру или клиенту" oninput="filterDeals()"><select onchange="filterStatus(this.value)"><option value="">Все статусы</option><option>Ожидает оплаты</option><option>В обработке</option><option>Завершена</option><option>Отклонена</option></select></div><div id="dealTable">${dealTable(list)}</div>`;return c}
-function dealTable(list){return table(list.map(d=>`<tr><td>${d.id}</td><td>${d.client}</td><td>${d.type}</td><td>${d.amount}</td><td>${d.currency}</td><td>${status(d.status)}</td><td>${d.date}</td><td><button class="btn secondary" onclick="detail('${d.id}')">Открыть</button></td></tr>`).join('')||'<tr><td colspan="8" class="empty">Сделок пока нет</td></tr>',['Номер','Клиент','Операция','Сумма','Валюта','Статус','Дата','Действия'])}
-function filterDeals(){let q=document.getElementById('dealSearch').value.toLowerCase();let l=deals.filter(d=>(dealTab==='Все'||d.type===dealTab||(dealTab==='Споры'&&d.status==='Спор'))&&(d.id+d.client).toLowerCase().includes(q));document.getElementById('dealTable').innerHTML=dealTable(l)}
-function filterStatus(s){let q=document.getElementById('dealSearch').value.toLowerCase();let l=deals.filter(d=>(dealTab==='Все'||d.type===dealTab)&&(d.id+d.client).toLowerCase().includes(q)&&(!s||d.status===s));document.getElementById('dealTable').innerHTML=dealTable(l)}
-function detail(id){let d=deals.find(x=>x.id===id);document.getElementById('modalTitle').textContent='Сделка '+id;document.getElementById('modalBody').innerHTML=`<p>Клиент: <b>${d.client}</b></p><p>Операция: ${d.type} · ${d.amount} ${d.currency}</p><p>Статус: ${status(d.status)}</p><p>Дата: ${d.date}</p><div class="row"><button class="btn green" onclick="changeDeal('${id}','Завершена')">Подтвердить / завершить</button><button class="btn red" onclick="changeDeal('${id}','Отклонена')">Отклонить</button></div>`;document.getElementById('modal').classList.remove('hidden')}
-function changeDeal(id,s){let d=deals.find(x=>x.id===id);d.status=s;persist();closeModal();render();toast('Статус сделки изменён')}
-function disputePage(c){let l=disputes.filter(d=>disputeTab==='Все'||(disputeTab==='Активные'&&d.status!=='Закрыт')||(disputeTab==='Завершённые'&&d.status==='Закрыт'));c.innerHTML=`<div class="tabs">${['Активные','Завершённые','Все'].map(t=>`<button class="${disputeTab===t?'active':''}" onclick="disputeTab='${t}';render()">${t}</button>`).join('')}</div><div class="panel"><div class="row"><h3>Список споров</h3><span class="muted">${l.length} обращ.</span></div>${table(l.map(d=>`<tr><td>${d.id}</td><td>${d.client}</td><td>${d.reason}</td><td>${status(d.status)}</td><td>${d.date}</td><td><button class="btn secondary" onclick="resolve('${d.id}')">Рассмотреть</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Споров нет</td></tr>',['Номер','Клиент','Причина','Статус','Дата','Действие'])}</div>`;return c}
-function resolve(id){let d=disputes.find(x=>x.id===id);d.status='Закрыт';render();toast('Спор закрыт в демо-режиме')}
-function statsPage(c){c.innerHTML=`<div class="filters"><label>Период <input type="date" value="2026-11-06"></label><label>По <input type="date" value="2026-11-06"></label><select><option>Все типы оплаты</option><option>Банковская карта</option><option>СБП</option></select><button class="btn" onclick="toast('Фильтры применены')">Применить</button><button class="btn secondary" onclick="exportCSV()">Экспорт Excel / CSV</button></div><div class="cards"><div class="card"><span class="muted">Всего сделок</span><div class="metric">${deals.length}</div></div><div class="card"><span class="muted">Оборот</span><div class="metric">745 780 ₽</div></div><div class="card"><span class="muted">Приём</span><div class="metric">537 000 ₽</div></div><div class="card"><span class="muted">Выплата</span><div class="metric">208 780 ₽</div></div></div><div class="panel"><h3>Статистика операций</h3><div class="item"><div class="row"><b>Приём</b><b>537 000 ₽</b></div><div class="bar"><i style="width:72%"></i></div></div><div class="item"><div class="row"><b>Выплата</b><b>208 780 ₽</b></div><div class="bar"><i style="width:28%"></i></div></div><div class="item"><div class="row"><b>Успешные сделки</b><b>${deals.filter(d=>d.status==='Завершена').length}</b></div><div class="bar"><i style="width:65%"></i></div></div></div>`;return c}
-function requisitesPage(c){c.innerHTML=`<div class="filters"><select><option>Все банки</option><option>Т-Банк</option><option>Альфа-Банк</option><option>Сбербанк</option><option>Озон Банк</option></select><select><option>Все группы</option><option>Основная</option><option>Резервная</option></select><button class="btn" onclick="openRequisite()">＋ Добавить реквизит</button></div><div class="panel"><h3>Банковские реквизиты</h3>${requisites.map((r,i)=>`<div class="item row"><div><b>${r}</b><div class="muted">Группа: Основная · Лимит: 100 000 ₽</div></div><div><span class="pill green">Активен</span> <button class="btn secondary" onclick="removeReq(${i})">Удалить</button></div></div>`).join('')}</div>`;return c}
-function employeesPage(c){c.innerHTML=`<div class="row"><h3>Список сотрудников</h3><button class="btn" onclick="openEmployee()">＋ Добавить сотрудника</button></div><div class="panel">${employees.map((e,i)=>`<div class="item row"><span>${e}</span><button class="btn secondary" onclick="toast('Карточка сотрудника ${i+1}')">Открыть</button></div>`).join('')}</div>`;return c}
-function settingsPage(c){c.innerHTML=`<div class="sectiongrid"><div class="panel"><h3>Курсы валют к рублю</h3><div class="formgrid">${Object.entries(rates).map(([k,v])=>`<label class="field">${k}<input id="rate${k}" type="number" step=".01" value="${v}"></label>`).join('')}</div><button class="btn" style="margin-top:14px" onclick="saveRates()">Сохранить курсы</button></div><div class="panel"><h3>Оформление</h3><label class="field">Тема интерфейса<select id="theme" onchange="setTheme(this.value)"><option value="dark">Тёмная</option><option value="darker">Очень тёмная</option></select></label><p><label><input type="checkbox" class="switch" checked> Уведомления о новых заявках</label></p><p><label><input type="checkbox" class="switch" checked> Уведомления о спорах</label></p><button class="btn secondary" onclick="toast('Настройки сохранены')">Сохранить настройки</button></div></div><div class="panel" style="margin-top:14px"><h3>Безопасность</h3><p class="muted">Доступ администратора в этой демонстрации не защищён серверной авторизацией.</p><button class="btn secondary" onclick="toast('В демо смена пароля недоступна')">Изменить пароль</button></div>`;return c}
-function saveRates(){Object.keys(rates).forEach(k=>rates[k]=Number(document.getElementById('rate'+k).value)||rates[k]);toast('Курсы сохранены: USDT '+rates.USDT+', USD '+rates.USD+', EUR '+rates.EUR);go('home')}
-function setTheme(v){document.body.style.setProperty('--bg',v==='darker'?'#090b0e':'#101216');toast('Тема изменена')}
-function persist(){localStorage.setItem('exDeals',JSON.stringify(deals));localStorage.setItem('exReq',JSON.stringify(requisites))}
-function openAddDeal(){modalAction='deal';document.getElementById('modalTitle').textContent='Новая сделка';document.getElementById('modalBody').innerHTML=`<div class="formgrid"><label class="field">Клиент<input id="mClient" placeholder="Имя клиента"></label><label class="field">Тип<select id="mType"><option>Приём</option><option>Выплата</option></select></label><label class="field">Сумма<input id="mAmount" placeholder="100 000 ₽"></label><label class="field">Валюта<select id="mCurrency"><option>USDT</option><option>RUB</option><option>USD</option><option>EUR</option></select></label></div>`;document.getElementById('modal').classList.remove('hidden')}
-function openRequisite(){modalAction='req';document.getElementById('modalTitle').textContent='Добавить реквизит';document.getElementById('modalBody').innerHTML=`<label class="field">Банк<select id="mBank"><option>Т-Банк</option><option>Альфа-Банк</option><option>Сбербанк</option><option>Озон Банк</option></select></label><label class="field">Реквизит<input id="mRequisite" placeholder="Карта •• 1234 или СБП"></label>`;document.getElementById('modal').classList.remove('hidden')}
-function openEmployee(){modalAction='emp';document.getElementById('modalTitle').textContent='Добавить сотрудника';document.getElementById('modalBody').innerHTML=`<label class="field">Имя сотрудника<input id="mEmp" placeholder="Имя"></label><label class="field">Роль<select id="mRole"><option>Оператор</option><option>Оператор выплат</option><option>Администратор</option></select></label>`;document.getElementById('modal').classList.remove('hidden')}
-function saveModal(){if(modalAction==='deal'){deals.unshift({id:'EX-'+Math.floor(10000+Math.random()*89999),client:document.getElementById('mClient').value||'Новый клиент',type:document.getElementById('mType').value,amount:document.getElementById('mAmount').value||'0',currency:document.getElementById('mCurrency').value,status:'Ожидает оплаты',date:new Date().toLocaleString('ru-RU')});persist()}if(modalAction==='req'){requisites.push(document.getElementById('mBank').value+' · '+(document.getElementById('mRequisite').value||'Новые реквизиты'));persist()}if(modalAction==='emp')employees.push((document.getElementById('mRole').value)+' · '+(document.getElementById('mEmp').value||'Новый сотрудник'));closeModal();render();toast('Сохранено в демо')}
-function removeReq(i){requisites.splice(i,1);persist();render();toast('Реквизит удалён')}
-function closeModal(){document.getElementById('modal').classList.add('hidden')}
-function exportCSV(){let rows=[['Номер','Клиент','Тип','Сумма','Валюта','Статус','Дата'],...deals.map(d=>[d.id,d.client,d.type,d.amount,d.currency,d.status,d.date])];let csv='\ufeff'+rows.map(r=>r.join(';')).join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='exchange-statistika.csv';a.click();URL.revokeObjectURL(a.href);toast('Файл статистики выгружен')}
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const rates = {USDT: null, USD: null, EUR: null};
+let page = 'home';
+let session = null;
+let isAdmin = false;
+let requestRows = [];
+let registrationRows = [];
+let lastError = '';
+
+const titles = {
+  home:['Панель администратора','Обзор работы обменника'],
+  requests:['Заявки','Заявки, созданные клиентами'],
+  deals:['Сделки','Операции обмена и их статусы'],
+  users:['Пользователи','Зарегистрированные клиенты'],
+  disputes:['Споры','Обращения и спорные операции'],
+  rates:['Курсы валют','Управление курсами обмена'],
+  stats:['Статистика','Показатели работы сервиса'],
+  requisites:['Реквизиты','Платёжные реквизиты сервиса'],
+  employees:['Сотрудники','Управление доступом команды'],
+  notifications:['Уведомления','События и оповещения сервиса'],
+  settings:['Настройки','Параметры и безопасность']
+};
+
+function toast(message) {
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.style.display = 'block';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => el.style.display = 'none', 3000);
+}
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+function fmt(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+}
+function table(rows, heads) {
+  return `<div class="tablewrap"><table><thead><tr>${heads.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows || ''}</tbody></table></div>`;
+}
+function empty(title, detail) {
+  return `<div class="empty"><b>${esc(title)}</b><p class="muted">${esc(detail)}</p></div>`;
+}
+function go(nextPage) {
+  if (!titles[nextPage]) return;
+  page = nextPage;
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  document.getElementById('pageTitle').textContent = titles[page][0];
+  document.getElementById('pageSub').textContent = titles[page][1];
+  render();
+}
+document.getElementById('nav').addEventListener('click', event => {
+  const button = event.target.closest('button[data-page]');
+  if (button) go(button.dataset.page);
+});
+
+async function telegramLogin() {
+  const {error} = await db.auth.signInWithOAuth({
+    provider: 'custom:telegram',
+    options: {redirectTo: window.location.origin + window.location.pathname}
+  });
+  if (error) toast('Не удалось начать вход: ' + error.message);
+}
+async function logout() {
+  const {error} = await db.auth.signOut();
+  if (error) return toast('Ошибка выхода: ' + error.message);
+  session = null;
+  isAdmin = false;
+  updateAuthUI();
+  render();
+  toast('Вы вышли из панели');
+}
+function updateAuthUI() {
+  document.getElementById('telegramLogin').classList.toggle('hidden', !!session);
+  document.getElementById('logoutBtn').classList.toggle('hidden', !session);
+  document.getElementById('adminIdentity').textContent = session
+    ? (session.user.user_metadata?.name || session.user.user_metadata?.full_name || 'Telegram-пользователь')
+    : 'Не авторизован';
+  const state = document.getElementById('authState');
+  state.textContent = isAdmin ? '● Администратор' : session ? '● Проверка прав' : '● Нет входа';
+  state.style.color = isAdmin ? '#5ce0ad' : '#f3b94f';
+}
+async function verifyAdmin() {
+  if (!session) { isAdmin = false; updateAuthUI(); render(); return; }
+  // Доступ разрешается только пользователю, чей UUID добавлен владельцем в public.admin_users.
+  const {data, error} = await db.from('admin_users').select('user_id').eq('user_id', session.user.id).maybeSingle();
+  if (error) {
+    isAdmin = false;
+    lastError = error.message;
+    updateAuthUI();
+    render();
+    return;
+  }
+  isAdmin = !!data;
+  updateAuthUI();
+  if (isAdmin) {
+    await Promise.all([loadRates(), loadRequests(), loadRegistrations()]);
+  } else {
+    render();
+  }
+}
+db.auth.onAuthStateChange((_event, nextSession) => {
+  session = nextSession;
+  // Supabase рекомендует не запускать дополнительные auth-запросы внутри callback.
+  setTimeout(() => verifyAdmin(), 0);
+});
+async function initAuth() {
+  const {data, error} = await db.auth.getSession();
+  if (error) { lastError = error.message; }
+  session = data?.session || null;
+  await verifyAdmin();
+}
+
+async function loadRates() {
+  const {data, error} = await db.from('rates').select('currency,rate');
+  if (error) { lastError = 'Курсы: ' + error.message; render(); return; }
+  Object.keys(rates).forEach(k => rates[k] = null);
+  (data || []).forEach(row => {
+    const key = String(row.currency || '').toUpperCase();
+    if (Object.prototype.hasOwnProperty.call(rates,key)) rates[key] = Number(row.rate);
+  });
+  render();
+}
+async function saveRates() {
+  if (!isAdmin) return toast('Нет прав администратора');
+  const updates = {};
+  for (const key of Object.keys(rates)) {
+    const input = document.getElementById('rate' + key);
+    const value = Number(String(input?.value || '').replace(',','.'));
+    if (!Number.isFinite(value) || value <= 0) return toast('Проверь курс ' + key);
+    updates[key] = value;
+  }
+  for (const [currency, rate] of Object.entries(updates)) {
+    const {error} = await db.from('rates').update({rate}).eq('currency',currency);
+    if (error) return toast('Не удалось сохранить ' + currency + ': ' + error.message);
+  }
+  await loadRates();
+  toast('Курсы успешно сохранены');
+}
+async function loadRequests() {
+  const {data,error} = await db.from('request').select('*').limit(200);
+  if (error) { lastError = 'Заявки: ' + error.message; requestRows = []; }
+  else requestRows = data || [];
+  render();
+}
+async function loadRegistrations() {
+  const {data,error} = await db.from('registrations').select('*').limit(500);
+  if (error) { lastError = 'Пользователи: ' + error.message; registrationRows = []; }
+  else registrationRows = data || [];
+  render();
+}
+function rowToCells(row, keys) {
+  return keys.map(key => `<td>${esc(row[key] ?? '—')}</td>`).join('');
+}
+function getColumns(rows, preferred) {
+  if (!rows.length) return [];
+  const keys = Object.keys(rows[0]);
+  return preferred.filter(k => keys.includes(k)).slice(0,7);
+}
+function renderDataTable(rows, preferred, emptyText) {
+  if (!rows.length) return empty('Записей пока нет', emptyText);
+  const cols = getColumns(rows, preferred);
+  if (!cols.length) return empty('Нужно сопоставить поля таблицы','Данные найдены, но названия её столбцов отличаются от ожидаемых. Сначала уточним структуру и добавим правильное отображение.');
+  return table(rows.map(row => `<tr>${rowToCells(row,cols)}</tr>`).join(''),cols);
+}
+function home(c) {
+  const rateCards = Object.entries(rates).map(([currency,rate]) =>
+    `<div class="item row"><b>${currency}</b><b>${rate === null ? '—' : fmt(rate)+' ₽'}</b></div>`
+  ).join('');
+  c.innerHTML = `
+    <div class="cards">
+      <div class="card"><span class="muted">Заявки</span><div class="metric">${isAdmin ? requestRows.length : '—'}</div><span class="muted">Из таблицы request</span></div>
+      <div class="card"><span class="muted">Пользователи</span><div class="metric">${isAdmin ? registrationRows.length : '—'}</div><span class="muted">Из таблицы registrations</span></div>
+      <div class="card"><span class="muted">Курс USDT</span><div class="metric">${rates.USDT === null ? '—' : fmt(rates.USDT)+' ₽'}</div><span class="muted">Из Supabase</span></div>
+      <div class="card"><span class="muted">Статус</span><div class="metric" style="font-size:18px">${isAdmin ? 'Подключено' : 'Закрыто'}</div><span class="muted">Доступ администратора</span></div>
+    </div>
+    <div class="sectiongrid">
+      <div class="panel"><h3>Последние заявки</h3>
+        ${isAdmin ? renderDataTable(requestRows.slice(0,5),['id','status','created_at','currency','amount'],'В таблице request пока нет записей.') : empty('Требуется вход','Войдите через Telegram и подтвердите права администратора.')}
+        <button class="btn secondary" onclick="go('requests')">Все заявки</button>
+      </div>
+      <div class="panel"><h3>Курсы валют</h3>${rateCards}<button class="btn secondary" onclick="go('rates')">Открыть курсы</button></div>
+    </div>`;
+  return c;
+}
+function requestsPage(c) {
+  c.innerHTML = `<div class="panel"><div class="row"><h3>Заявки клиентов</h3><button class="btn secondary" onclick="loadRequests()">Обновить</button></div>
+  ${renderDataTable(requestRows,['id','status','created_at','give','receive','amount','user_id','give_amount','give_currency','get_amount','get_currency','bank'],'Заявок пока нет. Если таблица request недоступна, проверьте её права SELECT в Supabase.')}</div>`;
+  return c;
+}
+function dealsPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Сделки</h3>${empty('Раздел подготовлен','Сейчас в Supabase подтверждена таблица request, но отдельная таблица сделок и её статусы ещё не согласованы. Не показываем вымышленные сделки.')}</div>`;
+  return c;
+}
+function usersPage(c) {
+  c.innerHTML = `<div class="panel"><div class="row"><h3>Пользователи</h3><button class="btn secondary" onclick="loadRegistrations()">Обновить</button></div>
+  ${renderDataTable(registrationRows,['id','telegram_id','username','first_name','last_name','created_at'],'Пользователей пока нет либо таблица registrations недоступна для чтения.')}</div>`;
+  return c;
+}
+function disputesPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Споры</h3>${empty('Таблица споров не подключена','Для этого раздела потребуется отдельная таблица споров и защищённые правила доступа. Сейчас никаких фиктивных обращений нет.')}</div>`;
+  return c;
+}
+function ratesPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Курсы валют к рублю</h3>
+    <div class="formgrid">${Object.entries(rates).map(([key,value])=>`<label class="field">${key} / RUB<input id="rate${key}" type="number" min="0.01" step="0.01" value="${value ?? ''}" placeholder="Загрузка..."></label>`).join('')}</div>
+    <button class="btn" style="margin-top:14px" onclick="saveRates()" ${isAdmin?'':'disabled'}>Сохранить курсы</button>
+    <p class="muted" style="margin-top:12px">Сохранение доступно только после авторизации администратора и настройки RLS для таблицы rates.</p></div>`;
+  return c;
+}
+function statsPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Статистика</h3>${empty('Пока нет подтверждённых данных','Статистика будет рассчитываться из реальных сделок после согласования структуры таблицы и статусов.')}</div>`;
+  return c;
+}
+function requisitesPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Реквизиты</h3>${empty('Реквизиты не подключены','Банковские реквизиты не храним в localStorage и не подменяем демонстрационными значениями. Подключим после создания защищённой таблицы.')}</div>`;
+  return c;
+}
+function employeesPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Сотрудники</h3>${empty('Управление сотрудниками не подключено','Сначала настроим проверенный список администраторов. Добавление сотрудников появится после проектирования ролей и прав.')}</div>`;
+  return c;
+}
+function notificationsPage(c) {
+  c.innerHTML = `<div class="panel"><h3>Уведомления</h3>${empty('Уведомлений пока нет','Подключим события о новых заявках, изменении статусов и спорах после настройки серверной логики.')}</div>`;
+  return c;
+}
+function settingsPage(c) {
+  c.innerHTML = `<div class="sectiongrid">
+    <div class="panel"><h3>Параметры обмена</h3><p class="muted">Курсы валют находятся в разделе «Курсы валют». Комиссию добавим после создания соответствующей настройки в базе.</p><button class="btn secondary" onclick="go('rates')">Перейти к курсам</button></div>
+    <div class="panel"><h3>Безопасность</h3><p class="muted">${session ? 'Telegram-сессия активна.' : 'Вход в панель не выполнен.'}</p><p class="muted">Права проверяются по таблице admin_users. Не используйте service_role key в HTML.</p>${session ? `<p class="muted">ID аккаунта: <code>${esc(session.user.id)}</code></p>` : ''}</div>
+  </div>`;
+  return c;
+}
+function render() {
+  const content = document.getElementById('content');
+  if (!isAdmin) {
+    content.innerHTML = `<div class="panel"><h3>${session ? 'Аккаунт Telegram подтверждён' : 'Вход администратора'}</h3>
+      <p class="muted">${session ? 'Этот Telegram-аккаунт ещё не добавлен в список администраторов Supabase.' : 'Для доступа к панели войдите через Telegram.'}</p>
+      ${session ? `<p class="muted">Ваш UUID: <code>${esc(session.user.id)}</code></p><p class="muted">Добавьте этот UUID в public.admin_users через SQL Editor Supabase. Инструкция приложена отдельно.</p>` : '<button class="btn" onclick="telegramLogin()">Войти через Telegram</button>'}
+      ${lastError ? `<p class="muted">Техническая информация: ${esc(lastError)}</p>` : ''}
+    </div>`;
+    return;
+  }
+  if (page === 'home') home(content);
+  else if (page === 'requests') requestsPage(content);
+  else if (page === 'deals') dealsPage(content);
+  else if (page === 'users') usersPage(content);
+  else if (page === 'disputes') disputesPage(content);
+  else if (page === 'rates') ratesPage(content);
+  else if (page === 'stats') statsPage(content);
+  else if (page === 'requisites') requisitesPage(content);
+  else if (page === 'employees') employeesPage(content);
+  else if (page === 'notifications') notificationsPage(content);
+  else if (page === 'settings') settingsPage(content);
+}
 render();
-</script></body></html>
+initAuth();
+</script>
+</body></html>
+
+
+
+
